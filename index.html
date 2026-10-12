@@ -131,7 +131,7 @@
   .field.span3{grid-column:1/-1;}
   @media (max-width:520px){ .field.span2, .field.span3{grid-column:1/-1;} }
   label{font-size:12px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:.05em;}
-  input[type=text], input[type=date], input[type=time], textarea, select{
+  input[type=text], input[type=date], input[type=time], input[type=number], textarea, select{
     font-family:var(--font-body); font-size:14.5px; padding:10px 12px; border:1.5px solid var(--hair);
     border-radius:8px; background:#FBFCFD; color:var(--ink); transition:border-color .15s, background .15s;
   }
@@ -193,6 +193,18 @@
   }
   .lang-btn.active{background:var(--amber); color:#0E2138;}
   .lang-btn:not(.active):hover{color:#EAF0F6;}
+  .top-tools{display:flex; flex-direction:column; align-items:flex-end; gap:10px;}
+  .ver{font-family:var(--font-mono); font-size:11px; color:#8FA3B8; letter-spacing:.06em;}
+  .top-link{
+    font-family:var(--font-body); font-size:12.5px; font-weight:600; color:#EAF0F6; text-decoration:none;
+    border:1px solid var(--steel-line); border-radius:8px; padding:7px 14px; background:rgba(255,255,255,0.04);
+  }
+  .top-link:hover{border-color:var(--amber);}
+
+  /* ---------- Blood pressure pair (systolic / diastolic) ---------- */
+  .bp-pair{display:flex; align-items:center; gap:8px;}
+  .bp-pair input{flex:1; min-width:0;}
+  .bp-slash{font-family:var(--font-mono); font-weight:700; color:var(--muted); font-size:18px;}
 
   /* ---------- Add-project control ---------- */
   .add-inline{display:flex; gap:8px;}
@@ -210,16 +222,20 @@
 <header class="top">
   <div class="top-row">
     <div class="brand-block">
-      <img class="logo-mark" src="logo.png" alt="EcoOils Mentari">
+      <img class="logo-mark" src="logo%20(1).png" alt="EcoOils Mentari">
       <div>
         <p class="brand-eyebrow" data-i18n="eyebrow">PT EcoOils Jaya Indonesia · HSSE</p>
         <p class="brand-sub" data-i18n="subtitle">Mentari Project · Sei Mangkei</p>
         <h1 class="title" data-i18n="title">Blood Pressure Monitoring</h1>
       </div>
     </div>
-    <div class="lang-toggle" role="group" aria-label="Language">
-      <button type="button" class="lang-btn active" data-lang="en">EN</button>
-      <button type="button" class="lang-btn" data-lang="bi">BI</button>
+    <div class="top-tools">
+      <div class="lang-toggle" role="group" aria-label="Language">
+        <button type="button" class="lang-btn active" data-lang="en">EN</button>
+        <button type="button" class="lang-btn" data-lang="bi">BI</button>
+      </div>
+      <div class="ver" id="ver"></div>
+      <a class="top-link" id="adminLink" href="https://iggifernandes.github.io/EcoOils-Project-Health-Monitoring/admin.html" data-i18n="admin">Admin</a>
     </div>
   </div>
 
@@ -305,7 +321,11 @@
       </div>
       <div class="field">
         <label data-i18n="fResult">Tension (BP) *</label>
-        <input type="text" id="f_result" placeholder="e.g. 120/80" required>
+        <div class="bp-pair">
+          <input type="number" id="f_sys" inputmode="numeric" min="50" max="260" placeholder="120" aria-label="Systolic" required>
+          <span class="bp-slash">/</span>
+          <input type="number" id="f_dia" inputmode="numeric" min="30" max="160" placeholder="80" aria-label="Diastolic" required>
+        </div>
       </div>
 
       <div class="field">
@@ -382,9 +402,14 @@
   // Code.gs's doGet/doPost route on.
   const BP_SHEET_NAME = "BloodPressure";
 
+  const APP_VERSION = "1.1.0";
+  document.getElementById('ver').textContent = "v" + APP_VERSION;
+
   // ── EN / BI translations for on-page labels ──────────────────────────
   const I18N = {
     en: {
+      admin: "Admin",
+      bpInvalid: "Systolic must be higher than diastolic.",
       eyebrow: "PT EcoOils Jaya Indonesia · HSSE",
       title: "Blood Pressure Monitoring",
       subtitle: "Mentari Project · Sei Mangkei",
@@ -422,6 +447,8 @@
       testsOnRecord: "check-ups on record",
     },
     bi: {
+      admin: "Admin",
+      bpInvalid: "Sistolik harus lebih tinggi dari diastolik.",
       eyebrow: "PT EcoOils Jaya Indonesia · HSSE",
       title: "Pemantauan Tekanan Darah",
       subtitle: "Proyek Mentari · Sei Mangkei",
@@ -637,6 +664,14 @@
       return;
     }
 
+    const sys = parseInt(document.getElementById('f_sys').value, 10);
+    const dia = parseInt(document.getElementById('f_dia').value, 10);
+    if(!(sys > dia)){
+      msg.textContent = T().bpInvalid;
+      msg.className = "err";
+      return;
+    }
+
     const contractorSel = document.getElementById('f_contractor').value;
     const contractor = contractorSel==="__other__" ? document.getElementById('f_contractorOther').value.trim() : contractorSel;
 
@@ -651,7 +686,7 @@
       position: document.getElementById('f_position').value,
       craftDiscipline: document.getElementById('f_craftDiscipline').value,
       age: document.getElementById('f_employeeId').value.trim(),
-      tension: document.getElementById('f_result').value.trim(),
+      tension: sys + "/" + dia,
       puls: document.getElementById('f_craft').value.trim(),
       temp: document.getElementById('f_testerPosition').value.trim(),
       physical: document.getElementById('f_tester').value.trim(),
